@@ -1,0 +1,34 @@
+pipeline {
+    agent any
+
+    environment {
+        TF_DIR = 'terraform'
+        DSL_DIR = 'jobs'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir("${TF_DIR}") {
+                    sh 'terraform init'
+                    sh 'terraform plan -out=tfplan'
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+
+        stage('Run Seed Job') {
+            steps {
+                jobDsl targets: "${DSL_DIR}/seed_job.groovy",
+                       removedJobAction: 'DELETE',
+                       removedViewAction: 'DELETE'
+            }
+        }
+    }
+}
